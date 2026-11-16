@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Position Size Calculator</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0e0f11">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#0e0f11;
+    --card:#17181b;
+    --line:#2a2c30;
+    --ink:#eeece6;
+    --muted:#84838a;
+    --accent:#e0995a;
+    --accent-soft:#2e2418;
+    --good:#5fbf85;
+    --warn:#e2685a;
+    --sans:'Space Grotesk','Inter',-apple-system,sans-serif;
+    --mono:'IBM Plex Mono','SF Mono',Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);padding:32px 16px 60px;
+  }
+  .wrap{max-width:520px;margin:0 auto;}
+
+  h1{
+    font-size:22px;font-weight:700;margin:0 0 4px;letter-spacing:-0.01em;
+  }
+  .lead{color:var(--muted);font-size:14px;margin:0 0 28px;line-height:1.5;}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:22px;margin-bottom:16px;
+  }
+
+  .step-num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:22px;height:22px;border-radius:50%;background:var(--accent-soft);
+    color:var(--accent);font-family:var(--mono);font-size:11px;font-weight:600;
+    margin-right:8px;
+  }
+  .step-title{
+    display:flex;align-items:center;font-size:13px;font-weight:600;
+    text-transform:uppercase;letter-spacing:0.04em;color:var(--ink);margin-bottom:16px;
+  }
+
+  .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+
+  input[type=number], select{
+    width:100%;background:#0e0f11;border:1.5px solid var(--line);
+    color:var(--ink);font-family:var(--sans);font-size:17px;font-weight:500;
+    padding:12px 14px;border-radius:10px;outline:none;
+    transition:border-color .15s;appearance:none;-webkit-appearance:none;
+    color-scheme:dark;
+  }
+  input[type=number]:focus, select:focus{border-color:var(--accent);}
+  select{
+    cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'><path fill='%2384838a' d='M6 8L0 0h12z'/></svg>");
+    background-repeat:no-repeat;background-position:right 14px center;
+  }
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  .pct-quick{display:flex;gap:8px;margin-top:8px;}
+  .pct-btn{
+    flex:1;text-align:center;padding:7px 4px;border-radius:8px;
+    border:1.5px solid var(--line);font-size:13px;color:var(--muted);
+    cursor:pointer;font-family:var(--mono);transition:all .15s;
+  }
+  .pct-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+
+  .spec-note{
+    font-size:12.5px;color:var(--muted);margin-top:10px;font-family:var(--mono);
+  }
+  .spec-note b{color:var(--ink);}
+
+  .result{
+    background:linear-gradient(180deg, #1c1d21, #151619);
+    border:1px solid var(--line);
+    color:var(--ink);border-radius:16px;padding:26px 22px;
+    text-align:center;margin-bottom:16px;
+  }
+  .result-label{font-size:13px;color:var(--muted);margin-bottom:6px;}
+  .result-value{
+    font-family:var(--mono);font-size:56px;font-weight:700;line-height:1;
+    color:var(--accent);letter-spacing:-0.01em;
+  }
+  .result-unit{font-size:13px;color:var(--muted);margin-top:4px;}
+
+  .breakdown{
+    display:flex;justify-content:space-around;margin-top:20px;
+    padding-top:18px;border-top:1px solid var(--line);
+  }
+  .bd-item .k{font-size:11.5px;color:var(--muted);margin-bottom:4px;}
+  .bd-item .v{font-family:var(--mono);font-size:17px;font-weight:600;color:var(--ink);}
+  .bd-item .v.warn{color:var(--warn);}
+  .bd-item .v.good{color:var(--good);}
+
+  .alert{
+    display:none;background:#2a1a17;border:1px solid #4a2c26;color:#e2938a;
+    border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.5;margin-bottom:16px;
+  }
+  .alert.show{display:block;}
+
+  footer{text-align:center;font-size:12px;color:var(--muted);margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Position Size Calculator</h1>
+  <p class="lead">Calculate how many futures lots/contracts fit your account's risk limit.</p>
+
+  <div class="card">
+    <div class="step-title"><span class="step-num">1</span> Account &amp; Risk</div>
+    <div class="field">
+      <label>Account balance ($)</label>
+      <input type="number" id="account" value="50000" step="100">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Risk (%)</label>
+        <input type="number" id="riskPct" value="1" step="0.1">
+      </div>
+      <div class="field">
+        <label>Risk ($)</label>
+        <input type="number" id="riskAmt" value="500" step="1">
+      </div>
+    </div>
+    <div class="pct-quick" id="pctQuick">
+      <div class="pct-btn" data-pct="0.5">0.5%</div>
+      <div class="pct-btn active" data-pct="1">1%</div>
+      <div class="pct-btn" data-pct="1.5">1.5%</div>
+      <div class="pct-btn" data-pct="2">2%</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="step-title"><span class="step-num">2</span> Contract &amp; Stop-Loss</div>
+    <div class="field">
+      <label>Select contract</label>
+      <select id="instrument"></select>
+    </div>
+    <div class="field">
+      <label id="slLabel">Stop-loss</label>
+      <input type="number" id="slInput" value="50" step="0.1">
+    </div>
+    <div class="spec-note" id="specNote"></div>
+  </div>
+
+  <div class="alert" id="flagZero">
+    This stop-loss is too wide for your risk budget on this contract → result is 0 contracts. Try tightening the stop-loss, switching to the micro version (if available), or increasing your risk %.
+  </div>
+
+  <div class="result">
+    <div class="result-label">CONTRACTS</div>
+    <div class="result-value" id="outContracts">—</div>
+    <div class="result-unit">rounded down, conservative</div>
+    <div class="breakdown">
+      <div class="bd-item">
+        <div class="k">Actual risk</div>
+        <div class="v" id="outActualRisk">—</div>
+      </div>
+      <div class="bd-item">
+        <div class="k">% of account</div>
+        <div class="v" id="outActualPct">—</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Always verify official contract specs on CME before execution.</footer>
+</div>
+
+<script>
+const DATA = [
+  {group:'Index', slLabel:'Stop-loss (points)', items:{
+    MNQ:{name:'Micro Nasdaq (MNQ)', pv:2},
+    NQ:{name:'E-mini Nasdaq (NQ)', pv:20},
+    MES:{name:'Micro S&P 500 (MES)', pv:5},
+    ES:{name:'E-mini S&P 500 (ES)', pv:50},
+    MYM:{name:'Micro Dow (MYM)', pv:0.5},
+    YM:{name:'E-mini Dow (YM)', pv:5},
+    M2K:{name:'Micro Russell 2000 (M2K)', pv:5},
+    RTY:{name:'E-mini Russell 2000 (RTY)', pv:50},
+  }},
+  {group:'Metals', slLabel:'Stop-loss (points, $ per unit)', items:{
+    MGC:{name:'Micro Gold (MGC)', pv:10},
+    GC:{name:'Gold full-size (GC)', pv:100},
+    SIL:{name:'Micro Silver (SIL)', pv:1000},
+    SI:{name:'Silver full-size (SI)', pv:5000},
+  }},
+  {group:'Forex', slLabel:'Stop-loss (pips)', items:{
+    M6E:{name:'Micro Euro (M6E)', pv:1.25},
+    '6E':{name:'Euro FX (6E)', pv:12.5},
+    M6B:{name:'Micro Pound (M6B)', pv:0.625},
+    '6B':{name:'British Pound (6B)', pv:6.25},
+    M6J:{name:'Micro Yen (M6J)', pv:1.25},
+    '6J':{name:'Japanese Yen (6J)', pv:12.5},
+    M6A:{name:'Micro Aussie (M6A)', pv:1},
+    '6A':{name:'Australian Dollar (6A)', pv:10},
+    '6C':{name:'Canadian Dollar (6C) — no micro', pv:10},
+    '6S':{name:'Swiss Franc (6S) — no micro', pv:12.5},
+    '6N':{name:'New Zealand Dollar (6N) — no micro', pv:10},
+  }},
+  {group:'Energy', slLabel:'Stop-loss ($ per unit)', items:{
+    MCL:{name:'Micro Crude Oil (MCL)', pv:100},
+    CL:{name:'Crude Oil WTI full-size (CL)', pv:1000},
+    MRB:{name:'Micro RBOB Gasoline (MRB)', pv:4200},
+    RB:{name:'RBOB Gasoline full-size (RB)', pv:42000},
+    HO:{name:'Heating Oil (HO) — no micro', pv:42000},
+  }}
+];
+
+const els = {
+  account: document.getElementById('account'),
+  riskPct: document.getElementById('riskPct'),
+  riskAmt: document.getElementById('riskAmt'),
+  instrument: document.getElementById('instrument'),
+  slInput: document.getElementById('slInput'),
+  slLabel: document.getElementById('slLabel'),
+  specNote: document.getElementById('specNote'),
+  outContracts: document.getElementById('outContracts'),
+  outActualRisk: document.getElementById('outActualRisk'),
+  outActualPct: document.getElementById('outActualPct'),
+  flagZero: document.getElementById('flagZero'),
+  pctQuick: document.getElementById('pctQuick'),
+};
+
+function findItem(key){
+  for(const g of DATA){ if(g.items[key]) return {group:g, item:g.items[key]}; }
+  return null;
+}
+
+function populateInstruments(){
+  els.instrument.innerHTML = '';
+  DATA.forEach(g=>{
+    const og = document.createElement('optgroup');
+    og.label = g.group;
+    Object.keys(g.items).forEach(key=>{
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = g.items[key].name;
+      og.appendChild(opt);
+    });
+    els.instrument.appendChild(og);
+  });
+  updateInstrumentMeta();
+  calc();
+}
+
+function updateInstrumentMeta(){
+  const found = findItem(els.instrument.value);
+  if(!found) return;
+  els.slLabel.textContent = found.group.slLabel;
+  els.specNote.innerHTML = `<b>$${found.item.pv}</b> per stop-loss unit`;
+}
+
+let lastEdited = 'riskPct';
+els.riskPct.addEventListener('input', ()=>{lastEdited='riskPct'; syncRisk(); calc(); clearPctActive();});
+els.riskAmt.addEventListener('input', ()=>{lastEdited='riskAmt'; syncRisk(); calc(); clearPctActive();});
+els.account.addEventListener('input', ()=>{syncRisk(); calc();});
+els.instrument.addEventListener('change', ()=>{updateInstrumentMeta(); calc();});
+els.slInput.addEventListener('input', calc);
+
+function clearPctActive(){
+  els.pctQuick.querySelectorAll('.pct-btn').forEach(b=>b.classList.remove('active'));
+}
+
+els.pctQuick.querySelectorAll('.pct-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    els.pctQuick.querySelectorAll('.pct-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    els.riskPct.value = btn.dataset.pct;
+    lastEdited = 'riskPct';
+    syncRisk();
+    calc();
+  });
+});
+
+function syncRisk(){
+  const acct = parseFloat(els.account.value)||0;
+  if(lastEdited==='riskPct'){
+    const pct = parseFloat(els.riskPct.value)||0;
+    els.riskAmt.value = (acct*pct/100).toFixed(2);
+  } else {
+    const amt = parseFloat(els.riskAmt.value)||0;
+    if(acct>0) els.riskPct.value = (amt/acct*100).toFixed(3);
+  }
+}
+
+function calc(){
+  const riskAmt = parseFloat(els.riskAmt.value)||0;
+  const sl = parseFloat(els.slInput.value)||0;
+  const found = findItem(els.instrument.value);
+  if(!found || sl<=0 || riskAmt<=0){
+    els.outContracts.textContent = '—';
+    els.outActualRisk.textContent = '—';
+    els.outActualPct.textContent = '—';
+    els.flagZero.classList.remove('show');
+    return;
+  }
+  const pv = found.item.pv;
+  const perContractRisk = sl * pv;
+  const contracts = Math.floor(riskAmt / perContractRisk);
+  const actualRisk = contracts * perContractRisk;
+  const acct = parseFloat(els.account.value)||0;
+  const actualPct = acct>0 ? (actualRisk/acct*100) : 0;
+
+  els.outContracts.textContent = contracts;
+  els.outActualRisk.textContent = '$' + actualRisk.toLocaleString(undefined,{maximumFractionDigits:2});
+  els.outActualPct.textContent = actualPct.toFixed(2) + '%';
+  els.outActualRisk.classList.toggle('warn', contracts===0);
+  els.outActualRisk.classList.toggle('good', contracts>0);
+
+  els.flagZero.classList.toggle('show', contracts===0);
+}
+
+syncRisk();
+populateInstruments();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+</script>
+</body>
+</html>
