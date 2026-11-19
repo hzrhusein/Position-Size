@@ -1,6 +1,6 @@
 {
   "name": "Position Size Calculator",
-  "short_name": "PosSize",
+  "short_name": "Size Calculator",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
